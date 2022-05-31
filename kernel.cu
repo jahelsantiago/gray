@@ -1,6 +1,7 @@
 ﻿
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
+#include <chrono>
 
 #include <iostream>
 #include <string>
@@ -63,10 +64,17 @@ int main() {
         return -1;
     }
 
+
+
+    
+    auto start = std::chrono::high_resolution_clock::now();
     // convert image to gray scale with Cpu --------------------------------------------------
     std::cout << "Processing on cpu...";
     //ConvertImageToGrayCpu(imageData, width, height);
     std::cout << "Done" << std::endl;
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    std::cout << "Time taken by function on Cpu: " << elapsed.count() << " seconds" << std::endl;
 
     // convert image to gray scale with Cuda --------------------------------------------------
 
@@ -80,16 +88,22 @@ int main() {
     std::cout << "Done" << std::endl;
 
     // process the image on the device
+    auto start_gpu = std::chrono::high_resolution_clock::now();
     std::cout << "Processing on device...";
     dim3 block(32, 32);
     dim3 grid(width / 32, height / 32);
     ConvertImageToGrayCuda<<<grid, block>>>(imageDataDevice, width, height);
     std::cout << "Done" << std::endl;
+    auto end_gpu = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed_gpu = end_gpu - start_gpu;
+    std::cout << "Time taken by function on Device: " << elapsed_gpu.count() << " seconds" << std::endl; 
 
     // copy the image back to the host
     std::cout << "Copying data back to host...";
     cudaMemcpy(imageData, imageDataDevice, width * height * 4, cudaMemcpyDeviceToHost);
     std::cout << "Done" << std::endl;
+
+
 
 
     //write image back to disk
