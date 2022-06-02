@@ -1,5 +1,4 @@
-﻿
-#include "cuda_runtime.h"
+﻿#include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include <chrono>
 
@@ -7,8 +6,10 @@
 #include <string>
 #include <cassert>
 
-#include "stb_image.h"
-#include "stb_image_write.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb/stb_image_write.h"
 
 struct Pixel
 {
@@ -54,10 +55,10 @@ void getDeviceCharacteristics()
 /**
  * @brief      { Converts the image to gray using CUDA }
  *
- * @param      image  The image 
+ * @param      image  The image
  * @param      width  The width of the image in pixels
  * @param      height The height of the image in pixels
- * @return 
+ * @return
  */
 void ConvertImageToGrayCpu(unsigned char *image, int width, int height)
 {
@@ -76,10 +77,10 @@ void ConvertImageToGrayCpu(unsigned char *image, int width, int height)
 /**
  * @brief      { Converts the image to gray using CUDA }
  *
- * @param      image  The image 
+ * @param      image  The image
  * @param      width  The width of the image in pixels
  * @param      height The height of the image in pixels
- * @param      iterations  The number of iterations that the kernel will run 
+ * @param      iterations  The number of iterations that the kernel will run
  */
 __global__ void ConvertImageToGrayLinear(unsigned char *image, int width, int height, int iterations)
 {
@@ -101,10 +102,10 @@ __global__ void ConvertImageToGrayLinear(unsigned char *image, int width, int he
 
 /**
  * @brief Run the algorithm on the CPU
- * 
+ *
  * @param image - the image to be converted
  * @param width - the width of the image
- * @param height - the height of the image 
+ * @param height - the height of the image
  */
 void runOnCpu(unsigned char *imageData, int width, int height)
 {
@@ -120,12 +121,12 @@ void runOnCpu(unsigned char *imageData, int width, int height)
 
 /**
  * @brief Run the algorithm on the GPU
- * 
- * @param imageData - image data to be processed on GPU device (CUDA) 
- * @param width - image width in pixels 
+ *
+ * @param imageData - image data to be processed on GPU device (CUDA)
+ * @param width - image width in pixels
  * @param height - image height in pixels
  */
-void runOnDevice(unsigned char *imageData, int width, int height)
+void runOnDevice(unsigned char *imageData, int width, int height, int blocks, int threads_per_block)
 {
     // allocate memory for the image on the device
     unsigned char *imageDataDevice = nullptr;
@@ -136,9 +137,6 @@ void runOnDevice(unsigned char *imageData, int width, int height)
 
     // process the image on the device
     auto start_gpu = std::chrono::high_resolution_clock::now();
-
-    int blocks = 1;
-    int threads_per_block = 32;
 
     int total_pixel = width * height;
     int iterations = total_pixel / (blocks * threads_per_block);
@@ -158,12 +156,31 @@ void runOnDevice(unsigned char *imageData, int width, int height)
     cudaFree(imageDataDevice);
 }
 
-
-int main()
+/**
+ * @brief      { Main function }
+ *
+ * @param      argc  The argc
+ * @param      argv  The argv.
+ * The first argument is the path to the image file,
+ * the second argument is the output path for the converted image
+ * the third argument is the number of blocks
+ * the fourth argument is the number of threads per block
+ *
+ * @return     { int }
+ */
+int main(int argc, char *argv[])
 {
 
-    // path to the image
-    char *path = "lena.png";
+    if (argc != 5)
+    {
+        std::cout << "Usage: " << argv[0] << " <image_path> <output_path> <blocks> <threads_per_block>" << std::endl;
+        return -1;
+    }
+
+    char *path = argv[1];
+    char *output_path = argv[2];
+    int blocks = atoi(argv[3]);
+    int threads_per_block = atoi(argv[4]);
 
     // Load image
     int width, height, channels;
@@ -175,10 +192,10 @@ int main()
     }
 
     // runOnCpu(imageData, width, height);
-    runOnDevice(imageData, width, height);
+    runOnDevice(imageData, width, height, blocks, threads_per_block);
 
     // write image back to disk
-    stbi_write_png("lena_out.png", width, height, 4, imageData, 4 * width);
+    stbi_write_png(output_path, width, height, 4, imageData, 4 * width);
 
     // free memory
     stbi_image_free(imageData);
