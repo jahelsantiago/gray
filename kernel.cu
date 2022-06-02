@@ -18,7 +18,7 @@ struct Pixel
 
 void getDeviceCharacteristics()
 {
-    // get the caracteristics of the device
+    // get the characteristics of the device
     cudaDeviceProp deviceProp;
     cudaGetDeviceProperties(&deviceProp, 0);
 
@@ -181,6 +181,23 @@ int main(int argc, char *argv[])
     char *output_path = argv[2];
     int blocks = atoi(argv[3]);
     int threads_per_block = atoi(argv[4]);
+
+    // get user's graphic properties and check if the device is capable of running the application
+    cudaDeviceProp deviceProp;
+    cudaGetDeviceProperties(&deviceProp, 0);
+
+    // check the blocks size
+    if (deviceProp.multiProcessorCount < blocks)
+    {
+        std::cout << "The device can run until " << deviceProp.maxThreadsPerBlock << " blocks" << std::endl;
+    }
+
+    // check the thread size per block of user's device
+    if (deviceProp.maxThreadsPerBlock < threads_per_block)
+    {
+        std::cout << "The device can run until " << deviceProp.maxThreadsPerBlock << " threads per block" << std::endl;
+    }
+
 
     // Load image
     int width, height, channels;
